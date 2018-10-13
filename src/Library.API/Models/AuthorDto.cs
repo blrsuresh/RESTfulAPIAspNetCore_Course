@@ -7,9 +7,9 @@ namespace Library.API.Models
 {
     public class AuthorDto
     {
-        public Guid Id;
-        public string Name;
-        public int Age;
-        public string Genre;
+        public Guid Id { get; set; }
+        public string Name { get; set; }
+        public int Age { get; set; }
+        public string Genre { get; set; }
     }
 }
