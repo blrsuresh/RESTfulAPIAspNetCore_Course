@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 using Library.API.Models;
 using Library.API.Entities;
 using AutoMapper;
-
+using Library.API.Helpers;
+using Microsoft.AspNetCore.Http;
 
 namespace Library.API.Controllers
 {
     [Route("api/authorcollections")]
-    public class AuthorCollectionsController: Controller
+    public class AuthorCollectionsController : Controller
     {
         private readonly ILibraryRepository _libraryRepository;
 
@@ -24,7 +25,7 @@ namespace Library.API.Controllers
         [HttpPost]
         public IActionResult CreateAuthorCollection([FromBody] IEnumerable<AuthorForCreationDto> authorCollection)
         {
-            if(authorCollection == null)
+            if (authorCollection == null)
             {
                 return BadRequest();
             }
@@ -41,7 +42,33 @@ namespace Library.API.Controllers
                 throw new Exception("Creating an author collection failed on save.");
             }
 
-            return Ok();
+            var authorCollectionToReturn = Mapper.Map<IEnumerable<AuthorDto>>(authorEntities);
+
+            var idsAsString = string.Join(",", authorCollectionToReturn.Select(a => a.Id));
+
+            return CreatedAtRoute("GetAuthorCollection", new { ids = idsAsString }, authorCollectionToReturn);
         }
+
+        [HttpGet("{Ids}", Name = "GetAuthorCollection")]
+        public IActionResult GetAuthorCollection([ModelBinder(BinderType = typeof(ArrayModelBinder))] IEnumerable<Guid> ids)
+        {
+            if (ids == null)
+            {
+                return BadRequest();
+            }
+
+            var authorEntities = _libraryRepository.GetAuthors(ids);
+
+            if (ids.Count() != authorEntities.Count())
+            {
+                return NotFound();
+            }
+
+            var authorsToReturn = Mapper.Map<IEnumerable<AuthorDto>>(authorEntities);
+
+            return Ok(authorEntities);
+        }
+
+       
     }
 }
