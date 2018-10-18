@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +9,9 @@ using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using Library.API.Helpers;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using NLog.Extensions.Logging;
 
 namespace Library.API
 {
@@ -59,13 +57,30 @@ namespace Library.API
         {
             loggerFactory.AddConsole();
 
+            loggerFactory.AddDebug(LogLevel.Error);
+            loggerFactory.AddNLog();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
             else
             {
-                app.UseExceptionHandler();
+                app.UseExceptionHandler(appBuilder =>
+                {
+                    appBuilder.Run(async context =>
+                    {
+                        var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+                        if (exceptionHandlerFeature != null)
+                        {
+                            var logger = loggerFactory.CreateLogger("Global exception logger");
+                            logger.LogError(500, exceptionHandlerFeature.Error, exceptionHandlerFeature.Error.Message);
+                        }
+
+                        context.Response.StatusCode = 500;
+                        await context.Response.WriteAsync("An unexpected fault happened. Try again later.");
+                    });
+                });
             }
 
             Mapper.Initialize(cfg =>
