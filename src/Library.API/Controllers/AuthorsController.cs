@@ -28,6 +28,7 @@ public class AuthorsController : Controller
     }
 
     [HttpGet(Name = "GetAuthors")]
+    [HttpHead]
     public IActionResult GetAuthors(AuthorsResourceParameters authorsResourceParameters, [FromHeader(Name = "Accept")] string mediaType)
     {
         if (!_propertyMappingService.ValidMappingExistsFor<AuthorDto, Author>
@@ -337,5 +338,12 @@ public class AuthorsController : Controller
         }
 
         return links;
+    }
+
+    [HttpOptions]
+    public IActionResult GetAuthorsOptions()
+    {
+        Response.Headers.Add("Allow", "GET,OPTIONS,POST");
+        return Ok();
     }
 }
